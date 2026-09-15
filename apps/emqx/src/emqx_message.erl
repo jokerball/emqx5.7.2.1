@@ -28,7 +28,8 @@
     make/3,
     make/4,
     make/6,
-    make/7
+    make/7,
+    make_dest_msg/7
 ]).
 
 %% Fields
@@ -179,6 +180,34 @@ make(MsgId, From, QoS, Topic, Payload, Flags, Headers) when
         headers = Headers,
         topic = Topic,
         payload = Payload,
+        timestamp = timestamp_now()
+    }.
+
+%% 生成只发给特定client的消息，该方法非emqx官方提供的方法，属于烽火新增的功能
+-spec make_dest_msg(
+    emqx_types:clientid(),
+    emqx_types:qos(),
+    emqx_types:topic(),
+    emqx_types:payload(),
+    emqx_types:flags(),
+    emqx_types:headers(),
+    emqx_types:clientid()
+) -> emqx_types:message().
+make_dest_msg(From, QoS, Topic, Payload, Flags, Headers, Dest) when
+    ?QOS_0 =< QoS,
+    QoS =< ?QOS_2,
+    is_map(Flags),
+    is_map(Headers)
+->
+    #message{
+        id = emqx_guid:gen(),
+        qos = QoS,
+        from = From,
+        flags = Flags,
+        headers = Headers,
+        topic = Topic,
+        payload = Payload,
+        dest = Dest,
         timestamp = timestamp_now()
     }.
 

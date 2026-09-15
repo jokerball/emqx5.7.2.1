@@ -213,7 +213,8 @@
     {counter, 'client.authorize', <<"Number of Authorization rule checks">>},
     {counter, 'client.subscribe', <<"Number of client subscriptions">>},
     {counter, 'client.unsubscribe', <<"Number of client unsubscriptions">>},
-    {counter, 'client.disconnected', <<"Number of client disconnects">>}
+    {counter, 'client.disconnected', <<"Number of client disconnects">>},
+    {counter, 'client.heartbeat', <<"Number of client heartbeat">>}
 ]).
 
 %% Session Lifecircle metrics

@@ -552,7 +552,16 @@ handle_in(
         {error, ReasonCode} ->
             handle_out(disconnect, ReasonCode, Channel)
     end;
-handle_in(?PACKET(?PINGREQ), Channel = #channel{keepalive = Keepalive}) ->
+handle_in(
+    ?PACKET(?PINGREQ),
+    Channel = #channel{
+        keepalive = Keepalive,
+        clientinfo = ClientInfo,
+        conninfo = ConnInfo
+    }
+) ->
+    %% 烽火新增：收到 PINGREQ 时触发 client.heartbeat 钩子并计数
+    ok = run_hooks('client.heartbeat', [ClientInfo, ConnInfo]),
     {ok, NKeepalive} = emqx_keepalive:check(Keepalive),
     NChannel = Channel#channel{keepalive = NKeepalive},
     {ok, ?PACKET(?PINGRESP), reset_timer(keepalive, NChannel)};

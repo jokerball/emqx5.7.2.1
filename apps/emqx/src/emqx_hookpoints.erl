@@ -42,6 +42,7 @@
     'client.connack',
     'client.connected',
     'client.disconnected',
+    'client.heartbeat',
     'client.authorize',
     'client.check_authz_complete',
     'client.check_authn_complete',
@@ -103,6 +104,8 @@ when
 
 -callback 'client.disconnected'(emqx_types:clientinfo(), _Reason :: atom(), emqx_types:conninfo()) ->
     callback_result().
+
+-callback 'client.heartbeat'(emqx_types:clientinfo(), emqx_types:conninfo()) -> callback_result().
 
 -callback 'client.authorize'(
     emqx_types:clientinfo(), emqx_types:pubsub(), emqx_types:topic(), allow | deny

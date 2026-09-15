@@ -504,6 +504,7 @@ reserved_idx('client.authorize') -> 206;
 reserved_idx('client.subscribe') -> 207;
 reserved_idx('client.unsubscribe') -> 208;
 reserved_idx('client.disconnected') -> 209;
+reserved_idx('client.heartbeat') -> 210;
 reserved_idx('session.created') -> 220;
 reserved_idx('session.resumed') -> 221;
 reserved_idx('session.takenover') -> 222;

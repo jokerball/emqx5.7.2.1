@@ -590,13 +590,26 @@ code_change(_OldVsn, State, _Extra) ->
 -spec do_dispatch(emqx_types:topic() | emqx_types:share(), emqx_types:delivery()) ->
     emqx_types:deliver_result().
 do_dispatch(Topic, #delivery{message = Msg}) ->
-    DispN = lists:foldl(
-        fun(Sub, N) ->
-            N + do_dispatch(Sub, Topic, Msg)
+    DispN =
+        case Msg#message.dest of
+            Dest when Dest =:= undefined; Dest =:= <<>> ->
+                lists:foldl(
+                    fun(Sub, N) ->
+                        N + do_dispatch(Sub, Topic, Msg)
+                    end,
+                    0,
+                    subscribers(Topic)
+                );
+            DestClient ->
+                %% 烽火新增：消息指定了目标 client id，直接投递到该客户端进程
+                lists:foldl(
+                    fun(ChanPid, N) ->
+                        N + do_dispatch(ChanPid, Topic, Msg)
+                    end,
+                    0,
+                    emqx_cm:lookup_channels(DestClient)
+                )
         end,
-        0,
-        subscribers(Topic)
-    ),
     case DispN of
         0 ->
             ok = emqx_hooks:run('message.dropped', [Msg, #{node => node()}, no_subscribers]),

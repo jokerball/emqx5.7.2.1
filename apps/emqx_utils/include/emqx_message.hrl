@@ -34,6 +34,8 @@
     topic :: emqx_types:topic(),
     %% Message Payload
     payload :: emqx_types:payload(),
+    %% 指定接收消息的 client id（该字段属于烽火自定义新增）
+    dest :: atom() | binary(),
     %% Timestamp (Unit: millisecond)
     timestamp :: integer(),
     %% Miscellaneous extensions, currently used for OpenTelemetry context propagation
