@@ -38,7 +38,8 @@
 
 -export([
     publish/2,
-    publish_batch/2
+    publish_batch/2,
+    publish_to_client/2
 ]).
 
 namespace() -> undefined.
@@ -47,7 +48,7 @@ api_spec() ->
     emqx_dashboard_swagger:spec(?MODULE, #{check_schema => true, translate_body => true}).
 
 paths() ->
-    ["/publish", "/publish/bulk"].
+    ["/publish", "/publish/bulk", "/publish_to_client"].
 
 schema("/publish") ->
     #{
@@ -82,6 +83,22 @@ schema("/publish/bulk") ->
                 ?DISPATCH_ERROR => hoconsc:mk(
                     hoconsc:array(hoconsc:ref(?MODULE, publish_error)), #{}
                 )
+            }
+        }
+    };
+schema("/publish_to_client") ->
+    #{
+        'operationId' => publish_to_client,
+        post => #{
+            summary => <<"Publish a message to a specific client">>,
+            description => <<"Publish a MQTT message to a specific target client">>,
+            tags => [<<"Publish">>],
+            'requestBody' => hoconsc:mk(hoconsc:ref(?MODULE, publish_to_client_message)),
+            responses => #{
+                ?ALL_IS_WELL => hoconsc:mk(hoconsc:ref(?MODULE, publish_ok)),
+                ?PARTIALLY_OK => hoconsc:mk(hoconsc:ref(?MODULE, publish_error)),
+                ?BAD_REQUEST => hoconsc:mk(hoconsc:ref(?MODULE, bad_request)),
+                ?DISPATCH_ERROR => hoconsc:mk(hoconsc:ref(?MODULE, publish_error))
             }
         }
     }.
@@ -136,6 +153,21 @@ fields(publish_message) ->
                 desc => ?DESC(payload_encoding),
                 required => false,
                 default => plain
+            })}
+    ] ++ fields(message);
+fields(publish_to_client_message) ->
+    [
+        {payload_encoding,
+            hoconsc:mk(hoconsc:enum([plain, base64]), #{
+                desc => ?DESC(payload_encoding),
+                required => false,
+                default => plain
+            })},
+        {dest_clientid,
+            hoconsc:mk(binary(), #{
+                desc => <<"Client ID of the target client">>,
+                required => true,
+                example => <<"client-1">>
             })}
     ] ++ fields(message);
 fields(message_properties) ->
@@ -233,6 +265,15 @@ publish_batch(post, #{body := Body}) ->
             {?BAD_REQUEST, make_bad_req_reply(Reason)}
     end.
 
+publish_to_client(post, #{body := Body}) ->
+    case dest_message(Body) of
+        {ok, Message} ->
+            Res = emqx_mgmt:publish(Message),
+            publish_result_to_http_reply(Message, Res);
+        {error, Reason} ->
+            {?BAD_REQUEST, make_bad_req_reply(Reason)}
+    end.
+
 make_bad_req_reply(invalid_topic_name) ->
     make_publish_error_response(?RC_TOPIC_NAME_INVALID);
 make_bad_req_reply(packet_too_large) ->
@@ -326,6 +367,14 @@ message(Map) ->
             {error, Reason}
     end.
 
+dest_message(Map) ->
+    try
+        make_dest_message(Map)
+    catch
+        throw:Reason ->
+            {error, Reason}
+    end.
+
 make_message(Map) ->
     Encoding = maps:get(<<"payload_encoding">>, Map, plain),
     case decode_payload(Encoding, maps:get(<<"payload">>, Map)) of
@@ -351,6 +400,48 @@ make_message(Map) ->
             end,
             Message = emqx_message:make(
                 http_api, QoS, Topic, Payload, #{retain => Retain}, Headers
+            ),
+            Size = emqx_message:estimate_size(Message),
+            (Size > size_limit()) andalso throw(packet_too_large),
+            {ok, Message};
+        {error, R} ->
+            {error, R}
+    end.
+
+make_dest_message(Map) ->
+    Encoding = maps:get(<<"payload_encoding">>, Map, plain),
+    case decode_payload(Encoding, maps:get(<<"payload">>, Map)) of
+        {ok, Payload} ->
+            QoS = maps:get(<<"qos">>, Map, 0),
+            Topic = maps:get(<<"topic">>, Map),
+            Retain = maps:get(<<"retain">>, Map, false),
+            DestClientId = maps:get(<<"dest_clientid">>, Map, undefined),
+            Headers =
+                case maps:get(<<"properties">>, Map, #{}) of
+                    Properties when
+                        is_map(Properties) andalso
+                            map_size(Properties) > 0
+                    ->
+                        #{properties => to_msg_properties(Properties)};
+                    _ ->
+                        #{}
+                end,
+            try
+                _ = emqx_topic:validate(name, Topic)
+            catch
+                error:_Reason ->
+                    throw(invalid_topic_name)
+            end,
+            case DestClientId of
+                undefined ->
+                    throw(missing_dest_clientid);
+                <<>> ->
+                    throw(missing_dest_clientid);
+                _ ->
+                    ok
+            end,
+            Message = emqx_message:make_dest_msg(
+                http_api, QoS, Topic, Payload, #{retain => Retain}, Headers, DestClientId
             ),
             Size = emqx_message:estimate_size(Message),
             (Size > size_limit()) andalso throw(packet_too_large),
