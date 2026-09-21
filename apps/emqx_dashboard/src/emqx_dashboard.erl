@@ -288,7 +288,7 @@ audit_log_fun() ->
 authorize(Req) ->
     case cowboy_req:parse_header(<<"authorization">>, Req) of
         {basic, Username, Password} ->
-            api_key_authorize(Req, Username, Password);
+            basic_authorize(Req, Username, Password);
         {bearer, Token} ->
             case emqx_dashboard_admin:verify_token(Req, Token) of
                 {ok, Username} ->
@@ -336,6 +336,30 @@ api_key_authorize(Req, Key, Secret) ->
             return_unauthorized(
                 ?BAD_API_KEY_OR_SECRET,
                 <<"Check api_key/api_secret">>
+            )
+    end.
+
+%% Basic Auth fallback: first try API key/secret, then dashboard username/password.
+%% This makes the v5 REST API accessible with plain username/password,
+%% aligned with the EMQX 4.x management API behavior.
+basic_authorize(Req, Username, Password) ->
+    case api_key_authorize(Req, Username, Password) of
+        {ok, _} = Ok ->
+            Ok;
+        {403, _, _} = Forbidden ->
+            Forbidden;
+        _ ->
+            dashboard_authorize(Username, Password)
+    end.
+
+dashboard_authorize(Username, Password) ->
+    case emqx_dashboard_admin:check(Username, Password) of
+        {ok, _User} ->
+            {ok, #{auth_type => basic_auth, source => Username}};
+        {error, _} ->
+            return_unauthorized(
+                ?BAD_API_KEY_OR_SECRET,
+                <<"Check api_key/api_secret or username/password">>
             )
     end.
 
