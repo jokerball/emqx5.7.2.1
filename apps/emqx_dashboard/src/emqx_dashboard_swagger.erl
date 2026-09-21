@@ -19,7 +19,7 @@
 -include_lib("typerefl/include/types.hrl").
 -include_lib("hocon/include/hoconsc.hrl").
 
--define(BASE_PATH, "/api/v5").
+-define(BASE_PATH, "/api/v4").
 
 %% API
 -export([spec/1, spec/2]).

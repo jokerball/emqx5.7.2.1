@@ -191,7 +191,7 @@ do_create(
     } = Config
 ) ->
     {ok, _} = application:ensure_all_started(esaml),
-    BaseURL = binary_to_list(DashboardAddr) ++ "/api/v5",
+    BaseURL = binary_to_list(DashboardAddr) ++ "/api/v4",
     SP = esaml_sp:setup(#esaml_sp{
         key = maybe_load_cert_or_key(KeyPath, fun esaml_util:load_private_key/1),
         certificate = maybe_load_cert_or_key(CertPath, fun esaml_util:load_certificate/1),

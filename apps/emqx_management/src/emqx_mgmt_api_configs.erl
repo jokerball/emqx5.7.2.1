@@ -455,7 +455,7 @@ format_limiter_config(RawConf) ->
     maps:with(Shorts, RawConf).
 
 conf_path_reset(Req) ->
-    <<"/api/v5", ?PREFIX_RESET, Path/binary>> = cowboy_req:path(Req),
+    <<"/api/v4", ?PREFIX_RESET, Path/binary>> = cowboy_req:path(Req),
     string:lexemes(Path, "/ ").
 
 get_full_config() ->
@@ -502,7 +502,7 @@ config_list() ->
     lists:foldl(fun(Key, Acc) -> [lists:keyfind(Key, 1, Roots) | Acc] end, [], ?ROOT_KEYS).
 
 conf_path(Req) ->
-    <<"/api/v5", ?PREFIX, Path/binary>> = cowboy_req:path(Req),
+    <<"/api/v4", ?PREFIX, Path/binary>> = cowboy_req:path(Req),
     string:lexemes(Path, "/ ").
 
 global_zone_roots() ->
