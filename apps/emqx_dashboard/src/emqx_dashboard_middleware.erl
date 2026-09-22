@@ -21,7 +21,20 @@
 -export([execute/2]).
 
 execute(Req, Env) ->
-    add_cors_flag(Req, Env).
+    Req1 = rewrite_legacy_api_path(Req),
+    add_cors_flag(Req1, Env).
+
+%% The dashboard web frontend still requests the legacy `/api/v5` prefix,
+%% while the backend now serves the API under `/api/v4` (to align with the
+%% EMQX 4.x management API). Rewrite the v5 prefix to v4 so both the legacy
+%% v5 frontend and the v4 API clients keep working against the same handlers.
+rewrite_legacy_api_path(Req) ->
+    case cowboy_req:path(Req) of
+        <<"/api/v5", Rest/binary>> ->
+            cowboy_req:path(<<"/api/v4", Rest/binary>>, Req);
+        _ ->
+            Req
+    end.
 
 add_cors_flag(Req, Env) ->
     CORS = emqx_conf:get([dashboard, cors], false),
