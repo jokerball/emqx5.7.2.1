@@ -37,7 +37,7 @@ jobs:
         shell: bash
 
     steps:
-      - uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633 # v4.1.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ matrix.profile[1] }}
           fetch-depth: 0
@@ -53,14 +53,14 @@ jobs:
       - name: build pkg
         run: |
           ./scripts/buildx.sh --profile "$PROFILE" --pkgtype pkg --builder "$BUILDER"
-      - uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: success()
         with:
           name: ${{ matrix.profile[0] }}-${{ matrix.os }}-${{ github.ref_name }}
           path: _packages/${{ matrix.profile[0] }}/
           retention-days: 7
       - name: Send notification to Slack
-        uses: slackapi/slack-github-action@6c661ce58804a1a20f6dc5fbee7f0381b469e001 # v1.25.0
+        uses: slackapi/slack-github-action@dcb1066f776dd043e64d0e8ba94ca15cc7e1875d # v4.0.0
         if: failure()
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
@@ -83,7 +83,7 @@ jobs:
           - macos-14-arm64
 
     steps:
-      - uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633 # v4.1.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ matrix.branch }}
           fetch-depth: 0
@@ -101,14 +101,14 @@ jobs:
           apple_developer_identity: ${{ secrets.APPLE_DEVELOPER_IDENTITY }}
           apple_developer_id_bundle: ${{ secrets.APPLE_DEVELOPER_ID_BUNDLE }}
           apple_developer_id_bundle_password: ${{ secrets.APPLE_DEVELOPER_ID_BUNDLE_PASSWORD }}
-      - uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3 # v4.3.1
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: success()
         with:
           name: ${{ matrix.profile }}-${{ matrix.os }}
           path: _packages/${{ matrix.profile }}/
           retention-days: 7
       - name: Send notification to Slack
-        uses: slackapi/slack-github-action@6c661ce58804a1a20f6dc5fbee7f0381b469e001 # v1.25.0
+        uses: slackapi/slack-github-action@dcb1066f776dd043e64d0e8ba94ca15cc7e1875d # v4.0.0
         if: failure()
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
