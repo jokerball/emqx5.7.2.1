@@ -21,7 +21,25 @@
 -export([execute/2]).
 
 execute(Req, Env) ->
-    add_cors_flag(Req, Env).
+    Req1 = rewrite_v4_path(Req),
+    add_cors_flag(Req1, Env).
+
+%% Compose EMQX 4.x compatible routes. The v4 endpoints below are mapped to
+%% their v5 counterparts so they share the same handler, and the request is
+%% tagged so that it gets authenticated with username/password (4.x style)
+%% instead of the v5 API key. See emqx_dashboard:authorize/1.
+rewrite_v4_path(Req) ->
+    case cowboy_req:path(Req) of
+        <<"/api/v4/mqtt/publish_to_client", Rest/binary>> ->
+            tag_v4(cowboy_req:path(<<"/api/v5/publish_to_client", Rest/binary>>, Req));
+        <<"/api/v4/nodes", Rest/binary>> ->
+            tag_v4(cowboy_req:path(<<"/api/v5/nodes", Rest/binary>>, Req));
+        _ ->
+            Req
+    end.
+
+tag_v4(Req) ->
+    cowboy_req:meta(v4_api, true, Req).
 
 add_cors_flag(Req, Env) ->
     CORS = emqx_conf:get([dashboard, cors], false),

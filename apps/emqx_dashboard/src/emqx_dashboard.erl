@@ -288,7 +288,7 @@ audit_log_fun() ->
 authorize(Req) ->
     case cowboy_req:parse_header(<<"authorization">>, Req) of
         {basic, Username, Password} ->
-            api_key_authorize(Req, Username, Password);
+            authorize_basic(Req, Username, Password);
         {bearer, Token} ->
             case emqx_dashboard_admin:verify_token(Req, Token) of
                 {ok, Username} ->
@@ -305,6 +305,31 @@ authorize(Req) ->
             return_unauthorized(
                 <<"AUTHORIZATION_HEADER_ERROR">>,
                 <<"Support authorization: basic/bearer ">>
+            )
+    end.
+
+%% The EMQX 4.x compatible routes (tagged by emqx_dashboard_middleware) are
+%% authenticated with dashboard username/password, while the v5 API keeps
+%% authenticating with API key/secret (or bearer token).
+authorize_basic(Req, Username, Password) ->
+    case is_v4_api(Req) of
+        true ->
+            dashboard_authorize(Username, Password);
+        false ->
+            api_key_authorize(Req, Username, Password)
+    end.
+
+is_v4_api(Req) ->
+    cowboy_req:meta(v4_api, Req) =:= true.
+
+dashboard_authorize(Username, Password) ->
+    case emqx_dashboard_admin:check(Username, Password) of
+        {ok, _User} ->
+            {ok, #{auth_type => basic_auth, source => Username}};
+        {error, _} ->
+            return_unauthorized(
+                <<"BAD_USERNAME_OR_PASSWORD">>,
+                <<"Check username/password">>
             )
     end.
 
