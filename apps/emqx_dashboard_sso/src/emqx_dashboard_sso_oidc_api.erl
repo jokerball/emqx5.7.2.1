@@ -41,7 +41,7 @@
 
 -define(TAGS, <<"Dashboard Single Sign-On">>).
 -define(BACKEND, oidc).
--define(BASE_PATH, "/api/v4").
+-define(BASE_PATH, "/api/v5").
 -define(CALLBACK_PATH, "/sso/oidc/callback").
 
 namespace() -> "dashboard_sso".

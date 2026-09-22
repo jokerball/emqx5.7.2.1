@@ -70,7 +70,7 @@ schema("/status") ->
 %% non-minirest (cowboy) API
 %%--------------------------------------------------------------------
 
-%% Note: Because swagger now requires an HTTP prefix (e.g. /api/v4),
+%% Note: Because swagger now requires an HTTP prefix (e.g. /api/v5),
 %% but the `/status` does not require this fixed prefix.
 %%
 %% Changing the swagger framework was too big, so we implemented the `/status`

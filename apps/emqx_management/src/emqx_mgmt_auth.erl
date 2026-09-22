@@ -186,11 +186,11 @@ format_epoch(Epoch) ->
 list() ->
     to_map(ets:match_object(?APP, #?APP{_ = '_'})).
 
-authorize(<<"/api/v4/users", _/binary>>, _Req, _ApiKey, _ApiSecret) ->
+authorize(<<"/api/v5/users", _/binary>>, _Req, _ApiKey, _ApiSecret) ->
     {error, <<"not_allowed">>, <<"users">>};
-authorize(<<"/api/v4/api_key", _/binary>>, _Req, _ApiKey, _ApiSecret) ->
+authorize(<<"/api/v5/api_key", _/binary>>, _Req, _ApiKey, _ApiSecret) ->
     {error, <<"not_allowed">>, <<"api_key">>};
-authorize(<<"/api/v4/logout", _/binary>>, _Req, _ApiKey, _ApiSecret) ->
+authorize(<<"/api/v5/logout", _/binary>>, _Req, _ApiKey, _ApiSecret) ->
     {error, <<"not_allowed">>, <<"logout">>};
 authorize(_Path, Req, ApiKey, ApiSecret) ->
     Now = erlang:system_time(second),
