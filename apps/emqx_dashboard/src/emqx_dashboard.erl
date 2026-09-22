@@ -37,6 +37,7 @@
 
 -define(EMQX_MIDDLE, emqx_dashboard_middleware).
 -define(DISPATCH_FILE, "dispatch.eterm").
+-define(V4_API_MARK, v4_api).
 
 %%--------------------------------------------------------------------
 %% Start/Stop Listeners
@@ -320,7 +321,7 @@ authorize_basic(Req, Username, Password) ->
     end.
 
 is_v4_api(Req) ->
-    cowboy_req:meta(v4_api, Req) =:= true.
+    maps:get(?V4_API_MARK, Req, false) =:= true.
 
 dashboard_authorize(Username, Password) ->
     case emqx_dashboard_admin:check(Username, Password) of
