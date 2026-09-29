@@ -25,6 +25,11 @@
 -define(NODE_METRICS_MODULE, emqx_mgmt_api_metrics).
 -define(NODE_STATS_MODULE, emqx_mgmt_api_stats).
 
+%% Tag set on the cowboy req by emqx_dashboard_middleware when the request
+%% originally targeted a v4 endpoint (e.g. /api/v4/nodes). See
+%% emqx_dashboard_middleware:rewrite_v4_path/1.
+-define(V4_API_MARK, v4_api).
+
 %% Swagger specs from hocon schema
 -export([
     api_spec/0,
@@ -36,7 +41,7 @@
 
 %% API callbacks
 -export([
-    nodes/2,
+    nodes/3,
     node/2,
     node_metrics/2,
     node_stats/2
@@ -265,8 +270,17 @@ fields(node_info) ->
 %% API Handler funcs
 %%--------------------------------------------------------------------
 
-nodes(get, _Params) ->
-    list_nodes(#{}).
+%% minirest invokes the operationId with the cowboy req as the 3rd argument
+%% when the callback is exported with that arity (see emqx_mgmt_api_configs).
+nodes(get, _Params, Req) ->
+    {200, NodesInfo} = list_nodes(#{}),
+    case is_v4_api(Req) of
+        true ->
+            %% EMQX 4.x style response envelope for /api/v4/nodes
+            {200, #{code => 0, data => NodesInfo}};
+        false ->
+            {200, NodesInfo}
+    end.
 
 node(get, #{bindings := #{node := NodeName}}) ->
     emqx_utils_api:with_node(NodeName, to_ok_result_fun(fun get_node/1)).
@@ -283,6 +297,10 @@ node_stats(get, #{bindings := #{node := NodeName}}) ->
 list_nodes(#{}) ->
     NodesInfo = [format(NodeInfo) || {_Node, NodeInfo} <- emqx_mgmt:list_nodes()],
     {200, NodesInfo}.
+
+%% True when the middleware tagged this request as coming from a v4 endpoint.
+is_v4_api(Req) ->
+    is_map(Req) andalso maps:get(?V4_API_MARK, Req, false) =:= true.
 
 get_node(Node) ->
     format(emqx_mgmt:lookup_node(Node)).
