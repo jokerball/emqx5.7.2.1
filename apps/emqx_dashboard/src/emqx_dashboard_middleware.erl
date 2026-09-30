@@ -37,6 +37,8 @@ rewrite_v4_path(Req) ->
             mark_v4(Req, <<"/api/v5/publish_to_client", Rest/binary>>);
         <<"/api/v4/nodes", Rest/binary>> ->
             mark_v4(Req, <<"/api/v5/nodes", Rest/binary>>);
+        <<"/api/v4/clients", Rest/binary>> ->
+            mark_v4(Req, <<"/api/v5/clients", Rest/binary>>);
         _ ->
             Req
     end.
