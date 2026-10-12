@@ -49,11 +49,13 @@ unsubscribe_batch(Node, ClientId, Topics) ->
 
 -spec node_info([node()]) -> emqx_rpc:erpc_multicall(map()).
 node_info(Nodes) ->
-    erpc:multicall(Nodes, emqx_mgmt, node_info, [], 30000).
+    %% 5s fast-fail: local node_info is cheap; a longer deadline would make
+    %% dashboard queries hang for tens of seconds when a node is unresponsive.
+    erpc:multicall(Nodes, emqx_mgmt, node_info, [], 5000).
 
 -spec broker_info([node()]) -> emqx_rpc:erpc_multicall(map()).
 broker_info(Nodes) ->
-    erpc:multicall(Nodes, emqx_mgmt, broker_info, [], 30000).
+    erpc:multicall(Nodes, emqx_mgmt, broker_info, [], 5000).
 
 -spec list_subscriptions(node()) -> [map()] | {badrpc, _}.
 list_subscriptions(Node) ->

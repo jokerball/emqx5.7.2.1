@@ -193,10 +193,13 @@ get_sys_memory() ->
     end.
 
 node_info(Nodes) ->
-    emqx_rpc:unwrap_erpc(emqx_management_proto_v5:node_info(Nodes)).
+    tolerant_multicall_info(Nodes, fun emqx_management_proto_v5:node_info/1).
 
 stopped_node_info(Node) ->
-    {Node, #{node => Node, node_status => 'stopped', role => core}}.
+    {Node, stopped_node_map(Node)}.
+
+stopped_node_map(Node) ->
+    #{node => Node, node_status => 'stopped', role => core}.
 
 %% Hide cpu stats if os_check is not supported.
 vm_stats() ->
@@ -258,7 +261,20 @@ convert_broker_info({K, V}, M) ->
     M#{K => iolist_to_binary(V)}.
 
 broker_info(Nodes) ->
-    emqx_rpc:unwrap_erpc(emqx_management_proto_v5:broker_info(Nodes)).
+    tolerant_multicall_info(Nodes, fun emqx_management_proto_v5:broker_info/1).
+
+%% erpc:multicall returns {ResL, BadNodes} when at least one node fails to
+%% reply (e.g. a node is OOM or partitioned). Instead of failing the whole
+%% API call (dashboard would get 500 / badrpc), degrade unresponsive nodes
+%% to a 'stopped' entry so data from healthy nodes is still served.
+tolerant_multicall_info(Nodes, Fun) ->
+    case Fun(Nodes) of
+        {ResL, BadNodes} ->
+            [emqx_rpc:unwrap_erpc(R) || R <- ResL] ++
+                [stopped_node_map(N) || N <- BadNodes];
+        Results ->
+            emqx_rpc:unwrap_erpc(Results)
+    end.
 
 %%--------------------------------------------------------------------
 %% Metrics and Stats
