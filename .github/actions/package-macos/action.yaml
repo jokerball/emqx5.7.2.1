@@ -51,7 +51,7 @@ runs:
             echo "SELF_HOSTED=false" >> $GITHUB_OUTPUT
             ;;
         esac
-    - uses: actions/cache@ab5e6d0c87105b4c9c2047343972218f562e4319 # v4.0.1
+    - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       id: cache
       if: steps.prepare.outputs.SELF_HOSTED != 'true'
       with:
